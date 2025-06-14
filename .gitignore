@@ -1,0 +1,44 @@
+# Python environments
+myenv/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+.python-version
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+notebooks/*.ipynb_checkpoints*
+
+# Data directories (ignore contents but keep directory structure)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep   # Optional: preserves folder structure
+!data/processed/.gitkeep
+
+# Package files
+*.egg-info/
+dist/
+build/
+
+# Testing artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Environment variables
+.env
+*.env
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Documentation builds
+docs/_build/
+
+# Log files
+*.log
+
+# Requirements file (keep this tracked)
+!requirements.txt
