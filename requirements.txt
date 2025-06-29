@@ -2,4 +2,8 @@ pandas
 numpy
 matplotlib
 seaborn
+pytest
+jupyter
+imbalanced-learn
+scikit-learn
 ucimlrepo
