@@ -1,0 +1,10 @@
+{
+  "original_size": 48842,
+  "rebalanced_size": 54904,
+  "synthetic_samples_added": 6062,
+  "original_bias": 0.356855066580203,
+  "final_bias": 0,
+  "bias_improvement": -100.0,
+  "is_fair": false,
+  "recommendation": "\u26a0\ufe0f  Limited improvement achieved. The bias in this dataset may be too severe for pre-processing alone. Strongly consider: 1) Investigating data collection practices, 2) Using fairness-aware learning algorithms, 3) Implementing decision-level interventions."
+}

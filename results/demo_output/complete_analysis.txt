@@ -1,0 +1,7 @@
+REBALANCE Complete Pipeline Demonstration
+============================================================
+
+Original Disparate Impact: 0.357
+Final Disparate Impact: 0.000
+Improvement: -100.0%
+
