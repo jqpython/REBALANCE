@@ -1,0 +1,239 @@
+
+================================================================================
+                    BIAS MITIGATION METHODS COMPARISON REPORT
+================================================================================
+
+Date: 2025-08-03 20:03:46
+Evaluator: REBALANCE Comprehensive Evaluation Framework
+
+--------------------------------------------------------------------------------
+EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+
+This report presents a systematic comparison of bias mitigation methods,
+evaluating their effectiveness at reducing gender bias while maintaining
+model performance. All methods were tested under identical conditions.
+
+KEY FINDINGS:
+
+1. Best Overall: Standard SMOTE
+   - Disparate Impact: 0.722
+   - F1 Score: 0.844
+   - Combined Score: 0.879
+
+--------------------------------------------------------------------------------
+DETAILED RESULTS BY METHOD
+--------------------------------------------------------------------------------
+
+NO MITIGATION (BASELINE)
+========================
+
+Bias Mitigation Performance:
+  Original Disparate Impact: 0.357
+  Final Disparate Impact: 0.357
+  Improvement: +0.0%
+  Meets Legal Threshold (0.8): NO
+
+Model Performance (Averaged):
+  Accuracy: 0.856
+  Precision: 0.632
+  Recall: 0.566
+  F1 Score: 0.538
+
+Efficiency:
+  Processing Time: 359.32 seconds
+  Synthetic Samples Created: 0
+
+Robustness:
+  Cross-validation F1 (mean ± std): 0.397 ± 0.082
+  Fairness Variance Across Models: 0.0035
+
+--------------------------------------------------------------------------------
+
+RANDOM OVERSAMPLING
+===================
+
+Bias Mitigation Performance:
+  Original Disparate Impact: 0.357
+  Final Disparate Impact: 0.508
+  Improvement: +42.4%
+  Meets Legal Threshold (0.8): NO
+
+Model Performance (Averaged):
+  Accuracy: 0.822
+  Precision: 0.815
+  Recall: 0.837
+  F1 Score: 0.824
+
+Efficiency:
+  Processing Time: 1302.06 seconds
+  Synthetic Samples Created: 33,160
+
+Robustness:
+  Cross-validation F1 (mean ± std): 0.809 ± 0.086
+  Fairness Variance Across Models: 0.0227
+
+--------------------------------------------------------------------------------
+
+STANDARD SMOTE
+==============
+
+Bias Mitigation Performance:
+  Original Disparate Impact: 0.357
+  Final Disparate Impact: 0.722
+  Improvement: +102.4%
+  Meets Legal Threshold (0.8): NO
+
+Model Performance (Averaged):
+  Accuracy: 0.842
+  Precision: 0.832
+  Recall: 0.858
+  F1 Score: 0.844
+
+Efficiency:
+  Processing Time: 1006.69 seconds
+  Synthetic Samples Created: 33,160
+
+Robustness:
+  Cross-validation F1 (mean ± std): 0.817 ± 0.061
+  Fairness Variance Across Models: 0.0272
+
+--------------------------------------------------------------------------------
+
+REBALANCE (FAIR SMOTE)
+======================
+
+Bias Mitigation Performance:
+  Original Disparate Impact: 0.357
+  Final Disparate Impact: 0.884
+  Improvement: +147.7%
+  Meets Legal Threshold (0.8): YES
+
+Model Performance (Averaged):
+  Accuracy: 0.843
+  Precision: 0.664
+  Recall: 0.576
+  F1 Score: 0.574
+
+Efficiency:
+  Processing Time: 0.83 seconds
+  Synthetic Samples Created: 2,124
+
+Robustness:
+  Cross-validation F1 (mean ± std): 0.462 ± 0.098
+  Fairness Variance Across Models: 0.0452
+
+--------------------------------------------------------------------------------
+
+AIF360 REWEIGHING
+=================
+
+Bias Mitigation Performance:
+  Original Disparate Impact: 0.000
+  Final Disparate Impact: 0.357
+  Improvement: +0.0%
+  Meets Legal Threshold (0.8): NO
+
+Model Performance (Averaged):
+  Accuracy: 0.849
+  Precision: 0.604
+  Recall: 0.491
+  F1 Score: 0.442
+
+Efficiency:
+  Processing Time: 102.44 seconds
+  Synthetic Samples Created: 0
+
+Robustness:
+  Cross-validation F1 (mean ± std): nan ± nan
+  Fairness Variance Across Models: 0.0000
+
+--------------------------------------------------------------------------------
+
+FAIRLEARN DEMOGRAPHIC PARITY
+============================
+
+Bias Mitigation Performance:
+  Original Disparate Impact: 0.000
+  Final Disparate Impact: 0.357
+  Improvement: +0.0%
+  Meets Legal Threshold (0.8): NO
+
+Model Performance (Averaged):
+  Accuracy: 0.849
+  Precision: 0.604
+  Recall: 0.491
+  F1 Score: 0.442
+
+Efficiency:
+  Processing Time: 101.92 seconds
+  Synthetic Samples Created: 0
+
+Robustness:
+  Cross-validation F1 (mean ± std): nan ± nan
+  Fairness Variance Across Models: 0.0000
+
+--------------------------------------------------------------------------------
+
+FAIRLEARN EQUALIZED ODDS
+========================
+
+Bias Mitigation Performance:
+  Original Disparate Impact: 0.000
+  Final Disparate Impact: 1.000
+  Improvement: +0.0%
+  Meets Legal Threshold (0.8): YES
+
+Model Performance (Averaged):
+  Accuracy: 0.821
+  Precision: 0.432
+  Recall: 0.306
+  F1 Score: 0.302
+
+Efficiency:
+  Processing Time: 31.08 seconds
+  Synthetic Samples Created: -16,458
+
+Robustness:
+  Cross-validation F1 (mean ± std): nan ± nan
+  Fairness Variance Across Models: 0.0000
+
+--------------------------------------------------------------------------------
+
+COMPARATIVE ANALYSIS
+====================
+
+Method                    | Disparate Impact | F1 Score | Time (s) | Combined Score
+-------------------------------------------------------------------------------------
+Standard SMOTE            |      0.722       |  0.844   | 1006.69  |     0.879     
+REBALANCE (Fair SMOTE)    |      0.884       |  0.574   |   0.83   |     0.830     
+Fairlearn Equalized Odds  |      1.000       |  0.302   |  31.08   |     0.721     
+Random Oversampling       |      0.508       |  0.824   | 1302.06  |     0.711     
+No Mitigation (Baseline)  |      0.357       |  0.538   |  359.32  |     0.483     
+AIF360 Reweighing         |      0.357       |  0.442   |  102.44  |     0.445     
+Fairlearn Demographic Parity |      0.357       |  0.442   |  101.92  |     0.445     
+
+
+KEY INSIGHTS:
+-------------
+
+1. REBALANCE vs Standard SMOTE:
+   - Disparate Impact improvement: +22.4%
+   - F1 Score difference: -0.270
+   - REBALANCE outperforms Standard SMOTE in fairness
+
+2. Methods Achieving Legal Fairness Threshold (DI ≥ 0.8):
+   - REBALANCE (Fair SMOTE)
+   - Fairlearn Equalized Odds
+
+3. Fairness-Performance Trade-offs:
+   - Random Oversampling: -53.1% F1 loss for 42.4% bias improvement
+   - Standard SMOTE: -56.9% F1 loss for 102.4% bias improvement
+   - REBALANCE (Fair SMOTE): -6.6% F1 loss for 147.7% bias improvement
+   - AIF360 Reweighing: 17.8% F1 loss for 0.0% bias improvement
+   - Fairlearn Demographic Parity: 17.8% F1 loss for 0.0% bias improvement
+   - Fairlearn Equalized Odds: 43.9% F1 loss for 0.0% bias improvement
+
+================================================================================
+                              END OF COMPARISON REPORT
+================================================================================

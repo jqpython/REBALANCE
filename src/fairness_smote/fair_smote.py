@@ -76,6 +76,24 @@ class FairSMOTE(BaseOverSampler):
         self.encoders_ = {}
         self.feature_indices_ = {}
 
+    def _check_X_y(self, X, y):
+        """
+        Override the base class validation to handle categorical data first.
+        """
+        # Store original format info
+        self._original_X_format = X
+        self._original_y_format = y
+        
+        # Encode categorical data first
+        if isinstance(X, pd.DataFrame):
+            X_encoded, self._X_was_dataframe = self._encode_categorical(X)
+        else:
+            X_encoded = X
+            self._X_was_dataframe = False
+            
+        # Now let the base class validate the encoded data
+        return super()._check_X_y(X_encoded, y)
+
     def _fit_resample(self, X, y):
         """
         Resample the dataset to reduce bias.
@@ -84,23 +102,23 @@ class FairSMOTE(BaseOverSampler):
         strategically to improve fairness metrics while maintaining
         data quality.
         """
-        # First, understand what we're working with
-        self._validate_inputs(X, y)
+        # First, understand what we're working with (using original data)
+        self._validate_inputs(self._original_X_format, self._original_y_format)
 
-        # Convert to numpy arrays for easier manipulation
-        X_np = X.values if isinstance(X, pd.DataFrame) else X
-        y_np = y.values if isinstance(y, pd.Series) else y
+        # X and y are already encoded by _check_X_y
+        X_encoded = X
+        y_np = y
 
-        # Encode categorical variables if necessary
-        X_encoded, X_was_dataframe = self._encode_categorical(X)
+        # Store the encoded data
+        self._X_encoded = X_encoded
 
-        # Analyze current bias situation
-        bias_analysis = self._analyze_bias(X, y)
+        # Analyze current bias situation (use original data for bias analysis)
+        bias_analysis = self._analyze_bias(self._original_X_format, self._original_y_format)
 
         # Determine how many samples we need to generate for each group
-        sampling_plan = self._create_sampling_plan(X, y, bias_analysis)
+        sampling_plan = self._create_sampling_plan(self._original_X_format, self._original_y_format, bias_analysis)
 
-        # Generate synthetic samples according to the plan
+        # Generate synthetic samples according to the plan (use encoded data)
         X_synthetic, y_synthetic = self._generate_synthetic_samples(
             X_encoded, y_np, sampling_plan
         )
@@ -114,8 +132,8 @@ class FairSMOTE(BaseOverSampler):
             y_resampled = y_np
 
         # Decode back to original format if necessary
-        if X_was_dataframe:
-            X_resampled = self._decode_categorical(X_resampled, X)
+        if self._X_was_dataframe:
+            X_resampled = self._decode_categorical(X_resampled, self._original_X_format)
 
         return X_resampled, y_resampled
 
@@ -206,8 +224,10 @@ class FairSMOTE(BaseOverSampler):
         analysis['unprivileged_group'] = groups_by_rate[-1]
 
         # Calculate disparate impact
-        priv_rate = analysis[analysis['privileged_group']]['positive_rate']
-        unpriv_rate = analysis[analysis['unprivileged_group']]['positive_rate']
+        privileged_group = analysis['privileged_group']
+        unprivileged_group = analysis['unprivileged_group']
+        priv_rate = analysis[privileged_group]['positive_rate']
+        unpriv_rate = analysis[unprivileged_group]['positive_rate']
         analysis['disparate_impact'] = unpriv_rate / priv_rate if priv_rate > 0 else 0
 
         return analysis
@@ -223,7 +243,8 @@ class FairSMOTE(BaseOverSampler):
         if self.fairness_strategy == 'equal_opportunity':
             # Goal: Equalize positive rates across groups
             # Find the target positive rate (we'll use the privileged group's rate)
-            target_positive_rate = bias_analysis[bias_analysis['privileged_group']]['positive_rate']
+            privileged_group = bias_analysis['privileged_group']
+            target_positive_rate = bias_analysis[privileged_group]['positive_rate']
 
             for group, stats in bias_analysis.items():
                 if group in ['privileged_group', 'unprivileged_group', 'disparate_impact']:
@@ -261,12 +282,24 @@ class FairSMOTE(BaseOverSampler):
         synthetic_labels = []
 
         # Extract protected attribute values
-        protected_values = X_encoded[:, self.protected_attribute_idx_]
+        if isinstance(X_encoded, np.ndarray):
+            protected_values = X_encoded[:, self.protected_attribute_idx_]
+        else:
+            # X_encoded is still a DataFrame
+            protected_values = X_encoded.iloc[:, self.protected_attribute_idx_].values
 
         for group, plan in sampling_plan.items():
             if plan['positive_samples_needed'] > 0:
+                # Convert group name to encoded value if necessary
+                if self.protected_attribute in self.encoders_:
+                    # Group is a string from bias analysis, need to encode it
+                    encoded_group = self.encoders_[self.protected_attribute].transform([group])[0]
+                else:
+                    # No encoding was needed, group is already numeric
+                    encoded_group = group
+                    
                 # Get positive samples from this protected group
-                group_mask = (protected_values == group) & (y == 1)
+                group_mask = (protected_values == encoded_group) & (y == 1)
                 group_samples = X_encoded[group_mask]
 
                 if len(group_samples) < 2:

@@ -1,0 +1,68 @@
+
+REBALANCE TECHNIQUE RECOMMENDATION REPORT
+=======================================
+Generated: 2025-08-03 17:45:27
+
+DATASET ANALYSIS:
+-----------------
+• Total Samples: 5,000
+• Features: 14
+• Positive Rate: 0.244
+• Disparate Impact: 0.396
+• Bias Level: Severe
+• Dataset Complexity: Simple
+• Categorical Features: 57.1%
+• Missing Values: 0.0%
+• Minority Group Size: 1,629
+• Minority Positive Samples: 196
+
+RECOMMENDATIONS BY PERFORMANCE PRIORITY:
+
+Fairness First Priority:
+----------------------------------------
+🥇 Top Choice: REBALANCE (Fair SMOTE)
+   Confidence: 1.00
+   Expected DI Improvement: 75.0%
+   Expected Accuracy Change: -0.5%
+   Computational Cost: Medium
+
+🥈 Alternative: Fairlearn Equalized Odds
+   Confidence: 1.00
+
+Balanced Priority:
+----------------------------------------
+🥇 Top Choice: REBALANCE (Fair SMOTE)
+   Confidence: 1.00
+   Expected DI Improvement: 75.0%
+   Expected Accuracy Change: -0.5%
+   Computational Cost: Medium
+
+🥈 Alternative: Fairlearn Equalized Odds
+   Confidence: 1.00
+
+Accuracy First Priority:
+----------------------------------------
+🥇 Top Choice: REBALANCE (Fair SMOTE)
+   Confidence: 1.00
+   Expected DI Improvement: 75.0%
+   Expected Accuracy Change: -0.5%
+   Computational Cost: Medium
+
+🥈 Alternative: Fairlearn Equalized Odds
+   Confidence: 1.00
+
+DETAILED GUIDANCE:
+----------------------------------------
+• Severe bias detected - prioritize fairness-first approaches
+• High categorical feature ratio - REBALANCE handles this well
+• Standard SMOTE may struggle with categorical features
+
+RECOMMENDED IMPLEMENTATION:
+----------------------------------------
+from src.rebalance_fair_smote import REBALANCE
+
+# Initialize technique
+technique = REBALANCE(k_neighbors=5, protected_attribute='sex', random_state=42)
+
+# Apply technique
+X_resampled, y_resampled = technique.fit_resample(X_train, y_train)

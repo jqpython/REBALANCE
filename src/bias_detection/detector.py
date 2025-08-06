@@ -200,7 +200,7 @@ class BiasDetector:
 
     def _calculate_all_metrics(self, group_stats: Dict[str, Dict[str, Any]]) -> BiasMetrics:
         """
-        Calculate all bias metrics from group statistics.
+        Calculate comprehensive bias metrics from group statistics.
         Each metric provides a different perspective on fairness.
         """
         # Identify privileged and unprivileged groups
@@ -214,11 +214,25 @@ class BiasDetector:
         priv_stats = group_stats[privileged_group]
         unpriv_stats = group_stats[unprivileged_group]
 
-        # Calculate Disparate Impact (DI)
+        # Calculate Disparate Impact (DI) with proper handling
         # DI = P(Y=1|unprivileged) / P(Y=1|privileged)
-        # Legal threshold is 0.8 (80% rule)
-        disparate_impact = (unpriv_stats['positive_rate'] / priv_stats['positive_rate']
-                          if priv_stats['positive_rate'] > 0 else 0)
+        if priv_stats['positive_rate'] == 0 and unpriv_stats['positive_rate'] == 0:
+            # Both groups have zero positive rate - no meaningful DI
+            disparate_impact = 1.0  # Treat as equal (no bias)
+            warnings.warn("Both groups have zero positive rate. Setting DI to 1.0")
+        elif priv_stats['positive_rate'] == 0:
+            # Only privileged group has zero rate - this indicates reverse bias
+            # Set to a large value to indicate bias favoring unprivileged group
+            disparate_impact = float('inf')  # Or use a large number like 999.0
+            warnings.warn(f"Privileged group ({privileged_group}) has zero positive rate. "
+                        f"This indicates unusual bias favoring {unprivileged_group}")
+        else:
+            # Normal calculation
+            disparate_impact = unpriv_stats['positive_rate'] / priv_stats['positive_rate']
+
+        # Ensure DI is within reasonable bounds for downstream processing
+        if disparate_impact == float('inf'):
+            disparate_impact = 999.0  # Cap at a large but finite value
 
         # Calculate Statistical Parity Difference (SPD)
         # SPD = P(Y=1|unprivileged) - P(Y=1|privileged)
@@ -237,6 +251,11 @@ class BiasDetector:
         # Compile group information
         group_sizes = {group: stats['size'] for group, stats in group_stats.items()}
         group_positive_rates = {group: stats['positive_rate'] for group, stats in group_stats.items()}
+
+          # Add validation check
+        if disparate_impact == 0:
+            warnings.warn("Disparate impact is exactly 0. This likely indicates a data issue. "
+                        f"Positive rates: {group_positive_rates}")
 
         return BiasMetrics(
             disparate_impact=disparate_impact,

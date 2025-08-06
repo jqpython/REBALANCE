@@ -1,0 +1,22 @@
+{
+  "experiment_timestamp": "2025-08-03T17:42:18.594192",
+  "dataset_info": {
+    "total_samples": 48842,
+    "training_samples": 39073,
+    "test_samples": 9769,
+    "initial_disparate_impact": 0.356855066580203,
+    "initial_bias_severity": "Severe bias detected"
+  },
+  "baseline_accuracy": 0.8431773978912888,
+  "methods": {
+    "Baseline (No Mitigation)": {
+      "disparate_impact": 0.3541163307329615,
+      "di_improvement_percent": -0.42583494091740737,
+      "accuracy": 0.8431773978912888,
+      "accuracy_change_percent": 0.0,
+      "f1_score": 0.234,
+      "precision": 0.5416666666666666,
+      "recall": 0.14923469387755103,
+      "samples_generated": 0,
+      "processing_time_seconds": 2.718015,
+      "meets_50_percent_di_target": 

@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from sklearn.model_selection import cross_val_score, StratifiedKFold
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import StandardScaler
 import warnings
 import json
 from datetime import datetime
@@ -29,6 +30,15 @@ from sklearn.utils import resample
 from ..bias_detection.detector import BiasDetector
 from ..fairness_smote.fair_smote import FairSMOTE
 from ..rebalance import FairRebalancer
+
+# External integrations
+try:
+    from ..integration.external_adapters import create_external_adapters, check_external_dependencies
+    EXTERNAL_ADAPTERS_AVAILABLE = True
+except ImportError:
+    EXTERNAL_ADAPTERS_AVAILABLE = False
+    warnings.warn("External adapter integrations not available.")
+
 
 @dataclass
 class EvaluationResult:
@@ -113,16 +123,27 @@ class ComprehensiveEvaluator:
         self.models_to_test = models_to_test or self._get_default_models()
 
     def _get_default_models(self):
-        """
-        Get a diverse set of models for testing.
-        Different models may respond differently to bias mitigation.
-        """
+        """Get a diverse set of models for testing with better LR configuration"""
         from sklearn.linear_model import LogisticRegression
         from sklearn.ensemble import RandomForestClassifier
         from sklearn.svm import SVC
         from sklearn.naive_bayes import GaussianNB
+        from sklearn.pipeline import make_pipeline
+        from sklearn.preprocessing import StandardScaler
+
+        # Create a pipeline with scaling for logistic regression
+        lr_pipeline = make_pipeline(
+            StandardScaler(),
+            LogisticRegression(
+                max_iter=5000,  # Increased from 1000
+                solver='liblinear',  # Often more stable than lbfgs
+                class_weight='balanced',
+                random_state=self.random_state
+            )
+        )
+
         return [
-            ('Logistic Regression', LogisticRegression(max_iter=1000, random_state=self.random_state)),
+            ('Logistic Regression', lr_pipeline),
             ('Random Forest', RandomForestClassifier(n_estimators=100, random_state=self.random_state)),
             ('SVM', SVC(kernel='rbf', random_state=self.random_state)),
             ('Naive Bayes', GaussianNB())
@@ -155,10 +176,13 @@ class ComprehensiveEvaluator:
             'Random Oversampling': self._evaluate_random_oversampling,
             'Standard SMOTE': self._evaluate_standard_smote,
             'REBALANCE (Fair SMOTE)': self._evaluate_rebalance,
-            # We could add more methods here like:
-            # 'AIF360 Reweighing': self._evaluate_aif360_reweighing,
-            # 'Fairlearn GridSearch': self._evaluate_fairlearn,
         }
+        
+        # Add external methods if available
+        if EXTERNAL_ADAPTERS_AVAILABLE:
+            external_adapters = create_external_adapters(protected_attribute)
+            for adapter_name, adapter in external_adapters.items():
+                methods[adapter_name] = lambda X, y, pa, adapter=adapter: self._evaluate_external_adapter(X, y, pa, adapter)
 
         results = {}
 
@@ -182,6 +206,109 @@ class ComprehensiveEvaluator:
 
         self.all_results = results
         return results
+
+    def _evaluate_external_adapter(self, X, y, protected_attribute, adapter):
+        """Evaluate an external fairness adapter."""
+        start_time = time.time()
+        
+        try:
+            # Apply the external adapter
+            X_resampled, y_resampled = adapter.fit_resample(X, y)
+            
+            # Calculate bias metrics on resampled data
+            bias_metrics = self.bias_detector.detect_bias(X_resampled, y_resampled, protected_attribute, 1)
+            
+            # Evaluate model performance
+            model_results = {}
+            
+            for model_name, model in self.models_to_test:
+                try:
+                    # Handle categorical encoding for models
+                    X_encoded = self._encode_for_model(X_resampled)
+                    X_test_encoded = self._encode_for_model(X)  # Encode test data similarly
+                    
+                    # Train model
+                    model.fit(X_encoded, y_resampled)
+                    
+                    # Predict on test set
+                    y_pred = model.predict(X_test_encoded)
+                    
+                    # Calculate metrics
+                    model_results[model_name] = {
+                        'accuracy': accuracy_score(y, y_pred),
+                        'precision': precision_score(y, y_pred, zero_division=0),
+                        'recall': recall_score(y, y_pred, zero_division=0),
+                        'f1': f1_score(y, y_pred, zero_division=0)
+                    }
+                    
+                except Exception as e:
+                    warnings.warn(f"Model {model_name} failed with external adapter: {str(e)}")
+                    model_results[model_name] = {
+                        'accuracy': 0.0, 'precision': 0.0, 'recall': 0.0, 'f1': 0.0
+                    }
+            
+            processing_time = time.time() - start_time
+            
+            # Calculate average performance
+            avg_accuracy = np.mean([r['accuracy'] for r in model_results.values()])
+            avg_precision = np.mean([r['precision'] for r in model_results.values()])
+            avg_recall = np.mean([r['recall'] for r in model_results.values()])
+            avg_f1 = np.mean([r['f1'] for r in model_results.values()])
+            
+            return EvaluationResult(
+                method_name=adapter.__class__.__name__,
+                original_disparate_impact=0.0,  # Would need original bias for comparison
+                final_disparate_impact=bias_metrics.disparate_impact,
+                bias_improvement=0.0,  # Would need original bias for calculation
+                accuracy=avg_accuracy,
+                precision=avg_precision,
+                recall=avg_recall,
+                f1=avg_f1,
+                processing_time=processing_time,
+                synthetic_samples_created=len(X_resampled) - len(X),
+                cross_val_scores=[],  # Could implement CV if needed
+                variance_in_fairness=0.0,
+                model_specific_results=model_results,
+                parameters_used={},
+                warnings_encountered=[]
+            )
+            
+        except Exception as e:
+            if self.verbose:
+                print(f"External adapter failed: {str(e)}")
+            
+            # Return a minimal result indicating failure
+            return EvaluationResult(
+                method_name=adapter.__class__.__name__,
+                original_disparate_impact=0.0,
+                final_disparate_impact=1.0,  # Neutral value
+                bias_improvement=0.0,
+                accuracy=0.0,
+                precision=0.0,
+                recall=0.0,
+                f1=0.0,
+                processing_time=0.0,
+                synthetic_samples_created=0,
+                cross_val_scores=[],
+                variance_in_fairness=0.0,
+                model_specific_results={},
+                parameters_used={},
+                warnings_encountered=[str(e)]
+            )
+
+    def _encode_for_model(self, X):
+        """Encode categorical variables for model training."""
+        if isinstance(X, pd.DataFrame):
+            X_encoded = X.copy()
+            for col in X.select_dtypes(include=['object']).columns:
+                le = LabelEncoder()
+                try:
+                    X_encoded[col] = le.fit_transform(X[col].astype(str))
+                except:
+                    # If encoding fails, use numeric representation
+                    X_encoded[col] = pd.Categorical(X[col]).codes
+            return X_encoded
+        return X
 
     def _evaluate_baseline(self, X, y, protected_attribute):
         """
@@ -385,6 +512,13 @@ class ComprehensiveEvaluator:
         # Encode categorical variables for model training
         X_encoded, encoders = self._encode_categorical(X)
 
+         # Add feature scaling for numerical features (new code)
+        numerical_cols = X_encoded.select_dtypes(include=['int64', 'float64']).columns
+        if len(numerical_cols) > 0:
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            X_encoded[numerical_cols] = scaler.fit_transform(X_encoded[numerical_cols])
+
         detailed_results = {}
         all_cv_scores = []
         fairness_scores = []
@@ -392,11 +526,11 @@ class ComprehensiveEvaluator:
         for model_name, model in self.models_to_test:
             # Perform cross-validation
             cv_scores = cross_val_score(
-                model, X_encoded, y,
-                cv=StratifiedKFold(n_splits=self.cv_folds, shuffle=True,
-                                  random_state=self.random_state),
-                scoring='f1'
-            )
+            model, X_encoded, y,
+            cv=StratifiedKFold(n_splits=self.cv_folds, shuffle=True,
+                              random_state=self.random_state),
+            scoring='f1'
+        )
 
             # Train on full data for other metrics
             model.fit(X_encoded, y)
@@ -607,7 +741,7 @@ KEY INSIGHTS:
 """
 
         if save_path:
-            with open(save_path, 'w') as f:
+            with open(save_path, 'w', encoding='utf-8') as f:
                 f.write(report)
             print(f"\nReport saved to: {save_path}")
 

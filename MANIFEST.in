@@ -1,0 +1,22 @@
+# Include the README and other important files
+include README.md
+include LICENSE
+include CHANGELOG.md
+include requirements.txt
+include pyproject.toml
+
+# Include data files
+recursive-include src *.json *.yaml *.yml
+recursive-include docs *
+recursive-include scripts *.py
+recursive-include results *.txt *.json *.png
+
+# Exclude unnecessary files
+exclude *.pyc
+exclude .DS_Store
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * *~
+recursive-exclude .git *
+recursive-exclude myenv *
+recursive-exclude .ropeproject *

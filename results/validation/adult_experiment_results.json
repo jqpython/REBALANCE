@@ -1,0 +1,51 @@
+{
+  "experiment_timestamp": "2025-08-03T17:38:18.610215",
+  "initial_disparate_impact": 0.356855066580203,
+  "baseline_accuracy": 0.8431773978912888,
+  "methods": {
+    "Baseline (No Mitigation)": {
+      "disparate_impact": 0.3541163307329615,
+      "di_improvement_pct": -0.42583494091740737,
+      "accuracy": 0.8431773978912888,
+      "accuracy_change_pct": 0.0,
+      "f1_score": 0.234,
+      "samples_generated": 0,
+      "meets_di_target": false,
+      "meets_accuracy_target": true
+    },
+    "Random Oversampling": {
+      "disparate_impact": 0.5011304222646924,
+      "di_improvement_pct": 22.432790524731885,
+      "accuracy": 0.7252533524413962,
+      "accuracy_change_pct": -13.985674396017972,
+      "f1_score": 0.46212424849699396,
+      "samples_generated": 26527,
+      "meets_di_target": false,
+      "meets_accuracy_target": false
+    },
+    "Standard SMOTE": {
+      "disparate_impact": 0.7327162943564008,
+      "di_improvement_pct": 58.44113950764247,
+      "accuracy": 0.711741222233596,
+      "accuracy_change_pct": -15.588199587228363,
+      "f1_score": 0.44281757024139295,
+      "samples_generated": 26527,
+      "meets_di_target": true,
+      "meets_accuracy_target": false
+    },
+    "REBALANCE (Fair SMOTE)": {
+      "disparate_impact": 0.8833549413243743,
+      "di_improvement_pct": 81.86333241321076,
+      "accuracy": 0.8368307912785341,
+      "accuracy_change_pct": -0.7527012261745811,
+      "f1_score": 0.25093984962406013,
+      "samples_generated": 1703,
+      "meets_di_target": true,
+      "meets_accuracy_target": true
+    }
+  },
+  "validation_criteria": {
+    "disparate_impact_reduction_target": 0.5,
+    "accuracy_loss_limit": 0.05
+  }
+}
